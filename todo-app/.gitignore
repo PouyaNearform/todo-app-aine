@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.env.local
+/node_modules/
+
+# React Router
+/.react-router/
+/build/
+
+# Build / cache
+/dist/
+/.cache/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
