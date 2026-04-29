@@ -1,0 +1,17 @@
+.shell {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-md);
+}
+
+@media (min-width: 641px) {
+  .shell {
+    padding: var(--space-lg);
+  }
+}
+
+@media (min-width: 1025px) {
+  .shell {
+    padding: var(--space-xl);
+  }
+}
