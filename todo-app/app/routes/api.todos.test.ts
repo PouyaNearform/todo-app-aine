@@ -70,6 +70,13 @@ describe("POST /api/todos action", () => {
     const env = await res.json();
     expect(env.ok).toBe(true);
     expect(env.data.id).toBe(validId);
+    // Story 2.5: security headers applied via withRequestLogging wrapper.
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(res.headers.get("X-Frame-Options")).toBe("DENY");
+    expect(res.headers.get("Referrer-Policy")).toBe("same-origin");
+    expect(res.headers.get("Content-Security-Policy")).toContain(
+      "default-src 'self'",
+    );
   });
 
   it("returns 500 with INTERNAL code when service throws", async () => {

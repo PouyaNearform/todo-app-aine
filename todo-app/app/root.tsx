@@ -11,9 +11,14 @@ import type { Route } from "./+types/root";
 import { AppShell } from "~/components/AppShell";
 import { ToastViewport } from "~/components/Toast";
 import { ToastProvider } from "~/lib/toast-store";
+import { securityHeaders } from "~/middleware/security-headers";
 import "./styles/reset.css";
 import "./styles/tokens.css";
 import "./styles/global.css";
+
+export function headers() {
+  return securityHeaders();
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (

@@ -3,6 +3,7 @@ import {
   buildRequestContext,
   type RequestContext,
 } from "~/middleware/request-context";
+import { applySecurityHeaders } from "~/middleware/security-headers";
 
 type BaseArgs = { request: Request };
 
@@ -36,6 +37,9 @@ export function withRequestLogging<Args extends BaseArgs, Return>(
         { ...baseFields, event: "request.end", durationMs },
         "request.end",
       );
+      if (result instanceof Response) {
+        applySecurityHeaders(result);
+      }
       return result;
     } catch (err) {
       const durationMs = Math.round(performance.now() - start);
