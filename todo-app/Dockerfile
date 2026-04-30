@@ -27,6 +27,10 @@ ENV NODE_ENV=production
 COPY --from=builder --chown=node:node /app/build ./build
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --chown=node:node package.json pnpm-lock.yaml ./
+COPY --chown=node:node db/migrate.mjs ./db/migrate.mjs
+COPY --chown=node:node db/migrations ./db/migrations
 USER node
 EXPOSE 3000
-CMD ["node_modules/.bin/react-router-serve", "./build/server/index.js"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=5 \
+  CMD wget -qO- --spider http://localhost:3000/ || exit 1
+CMD ["sh", "-c", "node db/migrate.mjs && exec node_modules/.bin/react-router-serve ./build/server/index.js"]
