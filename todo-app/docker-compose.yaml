@@ -29,5 +29,43 @@ services:
       start_period: 5s
     restart: unless-stopped
 
+  # ----- OPTIONAL: TLS-terminating reverse proxy --------------------------
+  # Uncomment for HTTPS termination at deploy time. WARNING: adding this
+  # service publishes the app to the network. Use a private network, VPN,
+  # or Tailscale tailnet — NEVER bind to 0.0.0.0 on a public-internet host.
+  # Also set HTTPS_ENABLED=true on the web service so the
+  # Strict-Transport-Security header gets sent.
+  #
+  # proxy:
+  #   image: caddy:2-alpine
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy-data:/data
+  #     - caddy-config:/config
+  #   depends_on:
+  #     web:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #
+  # Example Caddyfile (next to docker-compose.yaml):
+  #
+  #   todo.example.lan {
+  #       reverse_proxy web:3000
+  #   }
+  #
+  # Caddy auto-provisions Let's Encrypt certs over HTTP-01 if the host
+  # is publicly resolvable. For private networks, use Caddy's `tls internal`
+  # for self-signed certs:
+  #
+  #   todo.local {
+  #       tls internal
+  #       reverse_proxy web:3000
+  #   }
+
 volumes:
   pgdata:
+  # caddy-data:
+  # caddy-config:
