@@ -1,9 +1,5 @@
 import { Checkbox } from "~/components/Checkbox";
-import {
-  dispatchDeleteTodo,
-  dispatchToggleComplete,
-  useDispatch,
-} from "~/lib/optimistic-store";
+import { useDeleteTodo, useToggleComplete } from "~/lib/mutation-flows";
 import type { Todo } from "~/types/todo";
 import styles from "./ListItem.module.css";
 
@@ -12,7 +8,8 @@ type ListItemProps = {
 };
 
 export function ListItem({ todo }: ListItemProps) {
-  const dispatch = useDispatch();
+  const toggle = useToggleComplete();
+  const remove = useDeleteTodo();
   const completed = todo.completionStatus;
 
   return (
@@ -23,7 +20,7 @@ export function ListItem({ todo }: ListItemProps) {
     >
       <Checkbox
         checked={completed}
-        onToggle={(next) => dispatchToggleComplete(dispatch, todo.id, next)}
+        onToggle={(next) => toggle(todo.id, next, todo.description)}
         ariaLabel={`Toggle: ${todo.description}`}
         testId={`todo-checkbox-${todo.id}`}
       />
@@ -35,7 +32,7 @@ export function ListItem({ todo }: ListItemProps) {
         className={styles.deleteButton}
         aria-label={`Delete: ${todo.description}`}
         data-testid={`todo-delete-${todo.id}`}
-        onClick={() => dispatchDeleteTodo(dispatch, todo.id)}
+        onClick={() => remove(todo.id, todo.description)}
       >
         <span className={styles.deleteGlyph} aria-hidden="true">
           ×

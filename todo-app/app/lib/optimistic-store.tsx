@@ -192,8 +192,9 @@ export function useSeedFromLoader(todos: Todo[]): void {
 export async function dispatchAddTodo(
   dispatch: Dispatch<Action>,
   description: string,
+  id: string = crypto.randomUUID(),
+  onFailure?: () => void,
 ): Promise<void> {
-  const id = crypto.randomUUID();
   const mutationId = crypto.randomUUID();
   const ownerId = getBrowserKey();
   const tempTodo: Todo = {
@@ -218,8 +219,6 @@ export async function dispatchAddTodo(
       error?: unknown;
     };
     if (envelope.ok && envelope.data) {
-      // Server's createdAt comes back as a JSON string; revive to Date so
-      // downstream rendering / sorting stays type-safe.
       const serverTodo: Todo = {
         ...envelope.data,
         createdAt: new Date(envelope.data.createdAt as unknown as string),
@@ -228,10 +227,12 @@ export async function dispatchAddTodo(
     } else {
       console.warn("addTodo failed; reverting", envelope);
       dispatch({ type: "revertMutation", mutationId });
+      onFailure?.();
     }
   } catch (e) {
     console.warn("addTodo network error; reverting", e);
     dispatch({ type: "revertMutation", mutationId });
+    onFailure?.();
   }
 }
 
@@ -239,6 +240,7 @@ export async function dispatchToggleComplete(
   dispatch: Dispatch<Action>,
   id: string,
   next: boolean,
+  onFailure?: () => void,
 ): Promise<void> {
   const mutationId = crypto.randomUUID();
   dispatch({ type: "toggleComplete", mutationId, id });
@@ -259,16 +261,19 @@ export async function dispatchToggleComplete(
     } else {
       console.warn("toggleComplete failed; reverting", envelope);
       dispatch({ type: "revertMutation", mutationId });
+      onFailure?.();
     }
   } catch (e) {
     console.warn("toggleComplete network error; reverting", e);
     dispatch({ type: "revertMutation", mutationId });
+    onFailure?.();
   }
 }
 
 export async function dispatchDeleteTodo(
   dispatch: Dispatch<Action>,
   id: string,
+  onFailure?: () => void,
 ): Promise<void> {
   const mutationId = crypto.randomUUID();
   dispatch({ type: "deleteTodo", mutationId, id });
@@ -283,9 +288,11 @@ export async function dispatchDeleteTodo(
     } else {
       console.warn("deleteTodo failed; reverting", envelope);
       dispatch({ type: "revertMutation", mutationId });
+      onFailure?.();
     }
   } catch (e) {
     console.warn("deleteTodo network error; reverting", e);
     dispatch({ type: "revertMutation", mutationId });
+    onFailure?.();
   }
 }

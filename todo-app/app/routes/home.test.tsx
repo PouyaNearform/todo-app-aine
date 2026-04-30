@@ -16,6 +16,8 @@ import userEvent from "@testing-library/user-event";
 import { createRoutesStub } from "react-router";
 import Home from "./home";
 import { OptimisticStoreProvider } from "~/lib/optimistic-store";
+import { ToastProvider } from "~/lib/toast-store";
+import { ToastViewport } from "~/components/Toast";
 import type { Todo } from "~/types/todo";
 
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
@@ -38,9 +40,12 @@ function mountWithLoader(loaderReturn: unknown) {
     },
   ]);
   return render(
-    <OptimisticStoreProvider>
-      <Stub initialEntries={["/"]} />
-    </OptimisticStoreProvider>,
+    <ToastProvider>
+      <OptimisticStoreProvider>
+        <Stub initialEntries={["/"]} />
+      </OptimisticStoreProvider>
+      <ToastViewport />
+    </ToastProvider>,
   );
 }
 
@@ -128,7 +133,7 @@ describe("Home route", () => {
     expect(screen.getByTestId("empty-state")).toBeInTheDocument();
   });
 
-  it("reverts the optimistic add when the server returns ok:false", async () => {
+  it("reverts the optimistic add and surfaces a toast when the server returns ok:false", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -139,19 +144,119 @@ describe("Home route", () => {
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
-    // Suppress the expected console.warn from the dispatcher's revert path.
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     mountWithLoader({ ok: true, data: { todos: [] } });
     const input = await screen.findByTestId("todo-input");
     await userEvent.type(input, "doomed{Enter}");
 
-    // After the await resolves the revert fires; list goes back to empty.
+    // Empty state restored after revert.
     expect(await screen.findByTestId("empty-state")).toBeInTheDocument();
+    // Toast surfaces with the original description.
+    const toast = await screen.findByTestId("toast");
+    expect(toast).toHaveTextContent("Couldn't save");
+    expect(toast).toHaveTextContent("doomed");
     expect(warnSpy).toHaveBeenCalled();
 
     vi.unstubAllGlobals();
     warnSpy.mockRestore();
+  });
+
+  it("Retry from toast re-dispatches with the same UUID (idempotency)", async () => {
+    const failOnce = new Response(
+      JSON.stringify({ ok: false, error: { code: "INTERNAL", message: "fail" } }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+    const fetchMock = vi.fn();
+    fetchMock.mockResolvedValueOnce(failOnce);
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    mountWithLoader({ ok: true, data: { todos: [] } });
+    const input = await screen.findByTestId("todo-input");
+    await userEvent.type(input, "retry me{Enter}");
+
+    // Wait for revert + toast.
+    const toast = await screen.findByTestId("toast");
+    expect(toast).toBeInTheDocument();
+
+    // Capture the id sent on the first attempt.
+    const firstBody = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    const firstId = firstBody.id as string;
+
+    // Set up the success response for the retry.
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            id: firstId,
+            description: "retry me",
+            completionStatus: false,
+            createdAt: new Date().toISOString(),
+            ownerId: "11111111-2222-4333-8444-555555555555",
+          },
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await userEvent.click(screen.getByTestId("toast-retry"));
+
+    // Second fetch should have used the same id.
+    const secondBody = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string);
+    expect(secondBody.id).toBe(firstId);
+    expect(secondBody.description).toBe("retry me");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("dismissing a toast without retrying does not re-attempt", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ ok: false, error: { code: "INTERNAL", message: "fail" } }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    mountWithLoader({ ok: true, data: { todos: [] } });
+    await userEvent.type(await screen.findByTestId("todo-input"), "give up{Enter}");
+
+    await screen.findByTestId("toast");
+    await userEvent.click(screen.getByLabelText("Dismiss"));
+
+    // Toast gone; no second fetch fired.
+    expect(screen.queryByTestId("toast")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("two concurrent toggle failures produce two stacked toasts (FR29)", async () => {
+    const todoA = makeTodo({ description: "A" });
+    const todoB = makeTodo({ description: "B" });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ ok: false, error: { code: "INTERNAL", message: "fail" } }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    mountWithLoader({ ok: true, data: { todos: [todoA, todoB] } });
+
+    await userEvent.click(await screen.findByLabelText(`Toggle: ${todoA.description}`));
+    await userEvent.click(screen.getByLabelText(`Toggle: ${todoB.description}`));
+
+    const toasts = await screen.findAllByTestId("toast");
+    expect(toasts).toHaveLength(2);
+    expect(toasts.some((t) => t.textContent?.includes("A"))).toBe(true);
+    expect(toasts.some((t) => t.textContent?.includes("B"))).toBe(true);
+
+    vi.unstubAllGlobals();
   });
 
   it("optimistically deletes when the delete button is clicked", async () => {
