@@ -6,6 +6,7 @@ vi.mock("~/services/todos", () => ({
   listTodos: vi.fn(),
   createTodo: vi.fn(),
   toggleComplete: vi.fn(),
+  deleteTodo: vi.fn(),
   getTodoOwnership: vi.fn(),
 }));
 vi.mock("../../db/client", () => ({ db: {}, sql: { end: vi.fn() } }));
@@ -151,6 +152,42 @@ describe("Home route", () => {
 
     vi.unstubAllGlobals();
     warnSpy.mockRestore();
+  });
+
+  it("optimistically deletes when the delete button is clicked", async () => {
+    const todo = makeTodo({ description: "to delete" });
+    let resolveFetch: ((value: Response) => void) | undefined;
+    const fetchMock = vi.fn().mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    mountWithLoader({ ok: true, data: { todos: [todo] } });
+
+    const deleteBtn = await screen.findByLabelText(`Delete: ${todo.description}`);
+    expect(screen.getByTestId(`todo-item-${todo.id}`)).toBeInTheDocument();
+
+    await userEvent.click(deleteBtn);
+
+    // Optimistic remove happens before the fetch resolves.
+    expect(screen.queryByTestId(`todo-item-${todo.id}`)).toBeNull();
+
+    // Verify the DELETE was issued correctly.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`/api/todos/${todo.id}`);
+    expect(init.method).toBe("DELETE");
+
+    resolveFetch?.(
+      new Response(
+        JSON.stringify({ ok: true, data: { deleted: true, row: null } }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.unstubAllGlobals();
   });
 
   it("optimistically toggles completion when checkbox is clicked", async () => {

@@ -65,3 +65,14 @@ export async function toggleComplete(
     .returning();
   return result.length > 0 ? result[0] : null;
 }
+
+export async function deleteTodo(
+  ctx: RequestContext,
+  id: string,
+): Promise<Todo | null> {
+  const result = await db
+    .delete(todos)
+    .where(and(eq(todos.id, id), eq(todos.ownerId, ctx.ownerId)))
+    .returning();
+  return result.length > 0 ? result[0] : null;
+}

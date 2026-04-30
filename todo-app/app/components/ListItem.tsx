@@ -1,5 +1,9 @@
 import { Checkbox } from "~/components/Checkbox";
-import { dispatchToggleComplete, useDispatch } from "~/lib/optimistic-store";
+import {
+  dispatchDeleteTodo,
+  dispatchToggleComplete,
+  useDispatch,
+} from "~/lib/optimistic-store";
 import type { Todo } from "~/types/todo";
 import styles from "./ListItem.module.css";
 
@@ -26,9 +30,17 @@ export function ListItem({ todo }: ListItemProps) {
       <span className={completed ? styles.descriptionDone : styles.description}>
         {todo.description}
       </span>
-      <span className={styles.delete} aria-hidden="true">
-        ×
-      </span>
+      <button
+        type="button"
+        className={styles.deleteButton}
+        aria-label={`Delete: ${todo.description}`}
+        data-testid={`todo-delete-${todo.id}`}
+        onClick={() => dispatchDeleteTodo(dispatch, todo.id)}
+      >
+        <span className={styles.deleteGlyph} aria-hidden="true">
+          ×
+        </span>
+      </button>
     </li>
   );
 }

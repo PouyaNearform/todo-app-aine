@@ -4,12 +4,17 @@ vi.mock("~/services/todos", () => ({
   listTodos: vi.fn(),
   createTodo: vi.fn(),
   toggleComplete: vi.fn(),
+  deleteTodo: vi.fn(),
   getTodoOwnership: vi.fn(),
 }));
 vi.mock("../../db/client", () => ({ db: {}, sql: { end: vi.fn() } }));
 
 import { action } from "./api.todos.$id";
-import { getTodoOwnership, toggleComplete } from "~/services/todos";
+import {
+  deleteTodo,
+  getTodoOwnership,
+  toggleComplete,
+} from "~/services/todos";
 
 const validId = "11111111-2222-4333-8444-555555555555";
 const validTodoId = "22222222-3333-4444-9555-666666666666";
@@ -54,7 +59,7 @@ describe("PATCH /api/todos/:id action", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns 405 for methods other than PATCH", async () => {
+  it("returns 405 for methods other than PATCH or DELETE", async () => {
     const res = await action(actionArgs({ completed: true }, { method: "POST" }));
     expect(res.status).toBe(405);
   });
@@ -108,6 +113,65 @@ describe("PATCH /api/todos/:id action", () => {
     vi.mocked(getTodoOwnership).mockResolvedValue(validId);
     vi.mocked(toggleComplete).mockRejectedValue(new Error("DB down"));
     const res = await action(actionArgs({ completed: true }));
+    expect(res.status).toBe(500);
+    const env = await res.json();
+    expect(env.error.code).toBe("INTERNAL");
+  });
+});
+
+describe("DELETE /api/todos/:id action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns 200 with deleted:true when row doesn't exist (idempotent)", async () => {
+    vi.mocked(getTodoOwnership).mockResolvedValue(null);
+    const res = await action(actionArgs(undefined, { method: "DELETE" }));
+    expect(res.status).toBe(200);
+    const env = await res.json();
+    expect(env.ok).toBe(true);
+    expect(env.data.deleted).toBe(true);
+    expect(env.data.row).toBeNull();
+  });
+
+  it("returns 200 with the deleted row on success", async () => {
+    vi.mocked(getTodoOwnership).mockResolvedValue(validId);
+    vi.mocked(deleteTodo).mockResolvedValue({
+      id: validTodoId,
+      description: "row",
+      completionStatus: false,
+      createdAt: new Date(),
+      ownerId: validId,
+    } as never);
+    const res = await action(actionArgs(undefined, { method: "DELETE" }));
+    expect(res.status).toBe(200);
+    const env = await res.json();
+    expect(env.ok).toBe(true);
+    expect(env.data.deleted).toBe(true);
+    expect(env.data.row.id).toBe(validTodoId);
+  });
+
+  it("returns 200 with deleted:true even when service returns null (cross-owner already-gone semantics)", async () => {
+    vi.mocked(getTodoOwnership).mockResolvedValue("99999999-aaaa-4bbb-8ccc-dddddddddddd");
+    vi.mocked(deleteTodo).mockResolvedValue(null);
+    const res = await action(actionArgs(undefined, { method: "DELETE" }));
+    expect(res.status).toBe(200);
+    const env = await res.json();
+    expect(env.ok).toBe(true);
+    expect(env.data.deleted).toBe(true);
+    expect(env.data.row).toBeNull();
+  });
+
+  it("returns 500 with INTERNAL when deleteTodo throws", async () => {
+    vi.mocked(getTodoOwnership).mockResolvedValue(validId);
+    vi.mocked(deleteTodo).mockRejectedValue(new Error("DB down"));
+    const res = await action(actionArgs(undefined, { method: "DELETE" }));
     expect(res.status).toBe(500);
     const env = await res.json();
     expect(env.error.code).toBe("INTERNAL");

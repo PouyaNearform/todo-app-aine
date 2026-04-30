@@ -265,3 +265,27 @@ export async function dispatchToggleComplete(
     dispatch({ type: "revertMutation", mutationId });
   }
 }
+
+export async function dispatchDeleteTodo(
+  dispatch: Dispatch<Action>,
+  id: string,
+): Promise<void> {
+  const mutationId = crypto.randomUUID();
+  dispatch({ type: "deleteTodo", mutationId, id });
+
+  try {
+    const res = await browserKeyFetch(`/api/todos/${id}`, {
+      method: "DELETE",
+    });
+    const envelope = (await res.json()) as { ok: boolean; error?: unknown };
+    if (envelope.ok) {
+      dispatch({ type: "confirmMutation", mutationId });
+    } else {
+      console.warn("deleteTodo failed; reverting", envelope);
+      dispatch({ type: "revertMutation", mutationId });
+    }
+  } catch (e) {
+    console.warn("deleteTodo network error; reverting", e);
+    dispatch({ type: "revertMutation", mutationId });
+  }
+}

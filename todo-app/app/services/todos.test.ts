@@ -18,6 +18,7 @@ describeIfDb("todos service (integration)", () => {
   let listTodos: typeof import("./todos").listTodos;
   let createTodo: typeof import("./todos").createTodo;
   let toggleComplete: typeof import("./todos").toggleComplete;
+  let deleteTodo: typeof import("./todos").deleteTodo;
   let getTodoOwnership: typeof import("./todos").getTodoOwnership;
   let db: typeof import("../../db/client").db;
   let sql: typeof import("../../db/client").sql;
@@ -30,6 +31,7 @@ describeIfDb("todos service (integration)", () => {
     listTodos = services.listTodos;
     createTodo = services.createTodo;
     toggleComplete = services.toggleComplete;
+    deleteTodo = services.deleteTodo;
     getTodoOwnership = services.getTodoOwnership;
     db = client.db;
     sql = client.sql;
@@ -188,5 +190,38 @@ describeIfDb("todos service (integration)", () => {
   it("getTodoOwnership returns null for non-existent id", async () => {
     const owner = await getTodoOwnership(crypto.randomUUID());
     expect(owner).toBeNull();
+  });
+
+  it("deleteTodo removes the row and returns it", async () => {
+    const ownerId = crypto.randomUUID();
+    const created = await createTodo(makeCtx(ownerId), {
+      id: crypto.randomUUID(),
+      description: "to delete",
+    });
+    const deleted = await deleteTodo(makeCtx(ownerId), created.id);
+    expect(deleted).not.toBeNull();
+    expect(deleted?.id).toBe(created.id);
+    const list = await listTodos(makeCtx(ownerId));
+    expect(list.find((t) => t.id === created.id)).toBeUndefined();
+  });
+
+  it("deleteTodo returns null for non-existent id (idempotent)", async () => {
+    const ownerId = crypto.randomUUID();
+    const result = await deleteTodo(makeCtx(ownerId), crypto.randomUUID());
+    expect(result).toBeNull();
+  });
+
+  it("deleteTodo returns null when row belongs to a different owner", async () => {
+    const ownerA = crypto.randomUUID();
+    const ownerB = crypto.randomUUID();
+    const created = await createTodo(makeCtx(ownerA), {
+      id: crypto.randomUUID(),
+      description: "A's row",
+    });
+    const result = await deleteTodo(makeCtx(ownerB), created.id);
+    expect(result).toBeNull();
+    // Confirm A's row still exists.
+    const aList = await listTodos(makeCtx(ownerA));
+    expect(aList.map((t) => t.id)).toContain(created.id);
   });
 });

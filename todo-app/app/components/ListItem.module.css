@@ -32,13 +32,39 @@
   overflow-wrap: anywhere;
 }
 
-.delete {
-  font-size: 18px;
-  color: var(--color-fg-muted);
-  width: 24px;
-  height: 24px;
+.deleteButton {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--motion-duration-quick) var(--motion-easing);
+}
+
+.item:hover .deleteButton,
+.deleteButton:focus-visible {
+  opacity: 1;
+}
+
+.deleteButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.deleteGlyph {
+  font-size: 18px;
+  color: var(--color-fg-muted);
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .deleteButton {
+    opacity: 1;
+  }
 }
