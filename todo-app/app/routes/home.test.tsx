@@ -278,6 +278,24 @@ describe("Home route", () => {
     vi.unstubAllGlobals();
   });
 
+  it("every interactive control has a discoverable aria-label", async () => {
+    const todo = makeTodo({ description: "label test" });
+    mountWithLoader({ ok: true, data: { todos: [todo] } });
+
+    // TextInput
+    expect(await screen.findByLabelText("Add a todo")).toBeInTheDocument();
+    // Mobile submit button (in DOM regardless of viewport)
+    expect(screen.getByLabelText("Submit")).toBeInTheDocument();
+    // Checkbox in ListItem
+    expect(
+      screen.getByLabelText(`Toggle: ${todo.description}`),
+    ).toBeInTheDocument();
+    // Delete button in ListItem
+    expect(
+      screen.getByLabelText(`Delete: ${todo.description}`),
+    ).toBeInTheDocument();
+  });
+
   it("two concurrent toggle failures produce two stacked toasts (FR29)", async () => {
     const todoA = makeTodo({ description: "A" });
     const todoB = makeTodo({ description: "B" });

@@ -68,3 +68,19 @@
   color: var(--color-fg-muted);
   line-height: 1;
 }
+
+/* Inverted-block focus state: when any control inside the row is focused,
+ * the whole <li> shows the accent background. CSS variable overrides
+ * cascade through descendant components (Checkbox, delete button) so the
+ * inversion applies without prop drilling. */
+.item:focus-within {
+  background: var(--color-accent);
+  --color-fg: var(--color-accent-fg);
+  --color-fg-muted: var(--color-accent-fg);
+  --color-fg-faded: var(--color-accent-fg);
+  --color-border: var(--color-accent-fg);
+}
+
+.item:focus-within .deleteButton {
+  opacity: 1;
+}
