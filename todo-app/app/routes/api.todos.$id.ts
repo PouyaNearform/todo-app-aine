@@ -1,7 +1,8 @@
 import { logger } from "~/lib/logger";
 import { TodoUpdateSchema } from "~/lib/validation";
+import { withRequestLogging } from "~/lib/with-logging";
 import { checkOwnership } from "~/middleware/ownership-check";
-import { buildRequestContext } from "~/middleware/request-context";
+import type { RequestContext } from "~/middleware/request-context";
 import {
   deleteTodo,
   getTodoOwnership,
@@ -13,28 +14,29 @@ import type { Route } from "./+types/api.todos.$id";
 // Resource route for per-item mutations. Method-dispatched: PATCH (toggle)
 // from Story 1.11, DELETE (remove) from Story 1.12.
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const id = params.id;
-  if (!id) {
-    return Response.json(err("VALIDATION", "Missing id"), { status: 400 });
-  }
+export const action = withRequestLogging<Route.ActionArgs, Response>(
+  "/api/todos/:id",
+  async ({ request, params, ctx }) => {
+    const id = params.id;
+    if (!id) {
+      return Response.json(err("VALIDATION", "Missing id"), { status: 400 });
+    }
 
-  const ctx = buildRequestContext(request);
-
-  if (request.method === "PATCH") {
-    return handlePatch(request, ctx, id);
-  }
-  if (request.method === "DELETE") {
-    return handleDelete(ctx, id);
-  }
-  return Response.json(err("METHOD_NOT_ALLOWED", "Use PATCH or DELETE"), {
-    status: 405,
-  });
-}
+    if (request.method === "PATCH") {
+      return handlePatch(request, ctx, id);
+    }
+    if (request.method === "DELETE") {
+      return handleDelete(ctx, id);
+    }
+    return Response.json(err("METHOD_NOT_ALLOWED", "Use PATCH or DELETE"), {
+      status: 405,
+    });
+  },
+);
 
 async function handlePatch(
   request: Request,
-  ctx: ReturnType<typeof buildRequestContext>,
+  ctx: RequestContext,
   id: string,
 ): Promise<Response> {
   let body: unknown;
@@ -84,7 +86,7 @@ async function handlePatch(
 }
 
 async function handleDelete(
-  ctx: ReturnType<typeof buildRequestContext>,
+  ctx: RequestContext,
   id: string,
 ): Promise<Response> {
   const existingOwner = await getTodoOwnership(id);

@@ -1,17 +1,25 @@
-type Payload = Record<string, unknown>;
+import pino from "pino";
 
-function emit(level: "info" | "warn" | "error", payload: Payload, msg?: string) {
-  const line = JSON.stringify({
-    level,
-    time: new Date().toISOString(),
-    ...payload,
-    msg,
-  });
-  console[level](line);
+const isProd = process.env.NODE_ENV === "production";
+
+export const logger = pino({
+  level: process.env.LOG_LEVEL ?? "info",
+  base: undefined,
+  timestamp: () => `,"time":"${new Date().toISOString()}"`,
+  formatters: {
+    level: (label) => ({ level: label }),
+  },
+  ...(isProd
+    ? {}
+    : {
+        transport: {
+          target: "pino-pretty",
+          options: { colorize: true, translateTime: "HH:MM:ss.l" },
+        },
+      }),
+});
+
+/** Truncate a browser key to its first 8 chars for privacy-conscious logs. */
+export function truncateBrowserKey(key: string): string {
+  return key.slice(0, 8);
 }
-
-export const logger = {
-  info: (payload: Payload, msg?: string) => emit("info", payload, msg),
-  warn: (payload: Payload, msg?: string) => emit("warn", payload, msg),
-  error: (payload: Payload, msg?: string) => emit("error", payload, msg),
-};

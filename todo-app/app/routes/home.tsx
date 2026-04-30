@@ -11,8 +11,8 @@ import {
   useSeedFromLoader,
   useTodos,
 } from "~/lib/optimistic-store";
+import { withRequestLogging } from "~/lib/with-logging";
 import { checkOwnership } from "~/middleware/ownership-check";
-import { buildRequestContext } from "~/middleware/request-context";
 import { listTodos } from "~/services/todos";
 import { err, ok } from "~/types/envelope";
 import type { Todo } from "~/types/todo";
@@ -28,8 +28,12 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const ctx = buildRequestContext(request);
+export const loader = withRequestLogging<Route.LoaderArgs, ReturnType<typeof homeLoader> extends Promise<infer R> ? R : never>(
+  "GET /",
+  async ({ ctx }) => homeLoader(ctx),
+);
+
+async function homeLoader(ctx: Parameters<typeof checkOwnership>[0]) {
   checkOwnership(ctx, null);
   try {
     const todos = await listTodos(ctx);

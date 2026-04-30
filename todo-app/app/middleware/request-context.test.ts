@@ -1,19 +1,23 @@
 // @vitest-environment node
 
+const warnCalls: Array<{ payload: any; msg: string }> = [];
+
+vi.mock("~/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: (payload: any, msg: string) => warnCalls.push({ payload, msg }),
+    error: vi.fn(),
+  },
+}));
+
 import { buildRequestContext } from "./request-context";
 
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 describe("buildRequestContext", () => {
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
+    warnCalls.length = 0;
   });
 
   it("uses the X-Browser-Key header value when present", () => {
@@ -24,7 +28,7 @@ describe("buildRequestContext", () => {
     const ctx = buildRequestContext(req);
     expect(ctx.principal).toEqual({ kind: "browser-key", browserKey: preset });
     expect(ctx.ownerId).toBe(preset);
-    expect(warnSpy).not.toHaveBeenCalled();
+    expect(warnCalls).toHaveLength(0);
   });
 
   it("generates a server-side fallback UUID when the header is absent", () => {
@@ -35,7 +39,7 @@ describe("buildRequestContext", () => {
       expect(ctx.principal.browserKey).toMatch(UUID_V4);
     }
     expect(ctx.ownerId).toMatch(UUID_V4);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnCalls).toHaveLength(1);
   });
 
   it("generates a fallback when the header is the empty string", () => {
@@ -46,7 +50,7 @@ describe("buildRequestContext", () => {
     if (ctx.principal.kind === "browser-key") {
       expect(ctx.principal.browserKey).toMatch(UUID_V4);
     }
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnCalls).toHaveLength(1);
   });
 
   it("derives ownerId from principal.browserKey", () => {
@@ -75,9 +79,11 @@ describe("buildRequestContext", () => {
   it("emits a structured warning that includes event and path", () => {
     const req = new Request("http://localhost/api/todos");
     buildRequestContext(req);
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    const line = warnSpy.mock.calls[0][0] as string;
-    expect(line).toContain("browser-key.missing");
-    expect(line).toContain("/api/todos");
+    expect(warnCalls).toHaveLength(1);
+    expect(warnCalls[0].payload).toMatchObject({
+      event: "browser-key.missing",
+      path: "/api/todos",
+    });
+    expect(warnCalls[0].msg).toContain("X-Browser-Key absent");
   });
 });
