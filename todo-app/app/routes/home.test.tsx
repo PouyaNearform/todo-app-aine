@@ -15,7 +15,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRoutesStub } from "react-router";
 import Home from "./home";
-import { OptimisticStoreProvider } from "~/lib/optimistic-store";
 import { ToastProvider } from "~/lib/toast-store";
 import { ToastViewport } from "~/components/Toast";
 import type { Todo } from "~/types/todo";
@@ -41,9 +40,7 @@ function mountWithLoader(loaderReturn: unknown) {
   ]);
   return render(
     <ToastProvider>
-      <OptimisticStoreProvider>
-        <Stub initialEntries={["/"]} />
-      </OptimisticStoreProvider>
+      <Stub initialEntries={["/"]} />
       <ToastViewport />
     </ToastProvider>,
   );

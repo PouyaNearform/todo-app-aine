@@ -1,6 +1,7 @@
 .viewport {
   position: fixed;
   bottom: var(--space-md);
+  left: var(--space-md);
   right: var(--space-md);
   display: flex;
   flex-direction: column-reverse;
@@ -9,15 +10,14 @@
   z-index: 1000;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 641px) {
   .viewport {
-    right: var(--space-md);
-    left: var(--space-md);
+    left: auto;
   }
 }
 
 .toast {
-  width: 280px;
+  width: 100%;
   pointer-events: auto;
   background: var(--color-bg);
   border: var(--border-width) solid var(--color-border);
@@ -26,9 +26,9 @@
   animation: slide-in var(--motion-duration-quick) var(--motion-easing);
 }
 
-@media (max-width: 640px) {
+@media (min-width: 641px) {
   .toast {
-    width: 100%;
+    width: 280px;
   }
 }
 

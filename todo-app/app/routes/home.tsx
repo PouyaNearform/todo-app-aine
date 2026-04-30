@@ -6,13 +6,18 @@ import { LoadingState } from "~/components/LoadingState";
 import { TextInput } from "~/components/TextInput";
 import { logger } from "~/lib/logger";
 import { useAddTodo } from "~/lib/mutation-flows";
-import { useSeedFromLoader, useTodos } from "~/lib/optimistic-store";
+import {
+  OptimisticStoreProvider,
+  useSeedFromLoader,
+  useTodos,
+} from "~/lib/optimistic-store";
 import { checkOwnership } from "~/middleware/ownership-check";
 import { buildRequestContext } from "~/middleware/request-context";
 import { listTodos } from "~/services/todos";
 import { err, ok } from "~/types/envelope";
 import type { Todo } from "~/types/todo";
 import type { Route } from "./+types/home";
+import styles from "./home.module.css";
 
 const EMPTY_TODOS: Todo[] = [];
 
@@ -44,14 +49,40 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Home() {
   const data = useLoaderData<typeof loader>();
+  const initialTodos = data.ok ? data.data.todos : EMPTY_TODOS;
+  // Provider mounted at the route level so initial state hydrates
+  // synchronously from loader data. Without this, SSR renders an empty
+  // store and the user sees a flash of EmptyState before useEffect-driven
+  // seeding catches up.
+  return (
+    <OptimisticStoreProvider initialTodos={initialTodos}>
+      <HomeContent data={data} initialTodos={initialTodos} />
+    </OptimisticStoreProvider>
+  );
+}
+
+function HomeContent({
+  data,
+  initialTodos,
+}: {
+  data: Awaited<ReturnType<typeof loader>>;
+  initialTodos: Todo[];
+}) {
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const storeTodos = useTodos();
   const handleAdd = useAddTodo();
 
-  useSeedFromLoader(data.ok ? data.data.todos : EMPTY_TODOS);
+  // Re-seed the store when the loader's data ref changes (e.g., after
+  // revalidation triggered by a successful mutation). The dedupe key inside
+  // useSeedFromLoader keeps this from looping for unchanged content.
+  useSeedFromLoader(initialTodos);
 
-  const input = <TextInput onSubmit={handleAdd} />;
+  const input = (
+    <div className={styles.stickyInputWrapper}>
+      <TextInput onSubmit={handleAdd} />
+    </div>
+  );
 
   if (!data.ok) {
     return (

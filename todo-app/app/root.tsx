@@ -10,7 +10,6 @@ import {
 import type { Route } from "./+types/root";
 import { AppShell } from "~/components/AppShell";
 import { ToastViewport } from "~/components/Toast";
-import { OptimisticStoreProvider } from "~/lib/optimistic-store";
 import { ToastProvider } from "~/lib/toast-store";
 import "./styles/reset.css";
 import "./styles/tokens.css";
@@ -27,9 +26,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ToastProvider>
-          <OptimisticStoreProvider>
-            <AppShell>{children}</AppShell>
-          </OptimisticStoreProvider>
+          <AppShell>{children}</AppShell>
           <ToastViewport />
         </ToastProvider>
         <ScrollRestoration />

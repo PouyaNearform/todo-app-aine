@@ -28,7 +28,7 @@
 }
 
 .submitButton {
-  display: none;
+  display: inline-flex;
   width: 44px;
   min-width: 44px;
   border: var(--border-width) solid var(--color-border);
@@ -43,9 +43,9 @@
   justify-content: center;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 641px) {
   .submitButton {
-    display: inline-flex;
+    display: none;
   }
 }
 

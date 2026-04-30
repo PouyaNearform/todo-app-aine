@@ -2,14 +2,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-md) 0;
+  padding: var(--space-sm) 0;
   border-bottom: var(--border-width) solid var(--color-border-soft);
   list-style: none;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 641px) {
   .item {
-    padding: var(--space-sm) 0;
+    padding: var(--space-md) 0;
   }
 }
 
@@ -43,8 +43,14 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  opacity: 0;
+  opacity: 1;
   transition: opacity var(--motion-duration-quick) var(--motion-easing);
+}
+
+@media (min-width: 641px) {
+  .deleteButton {
+    opacity: 0;
+  }
 }
 
 .item:hover .deleteButton,
@@ -61,10 +67,4 @@
   font-size: 18px;
   color: var(--color-fg-muted);
   line-height: 1;
-}
-
-@media (max-width: 640px) {
-  .deleteButton {
-    opacity: 1;
-  }
 }
