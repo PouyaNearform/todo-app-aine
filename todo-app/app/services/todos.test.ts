@@ -14,9 +14,11 @@ function makeCtx(ownerId: string): RequestContext {
   };
 }
 
-describeIfDb("listTodos + createTodo (integration)", () => {
+describeIfDb("todos service (integration)", () => {
   let listTodos: typeof import("./todos").listTodos;
   let createTodo: typeof import("./todos").createTodo;
+  let toggleComplete: typeof import("./todos").toggleComplete;
+  let getTodoOwnership: typeof import("./todos").getTodoOwnership;
   let db: typeof import("../../db/client").db;
   let sql: typeof import("../../db/client").sql;
   let todos: typeof import("../../db/schema").todos;
@@ -27,6 +29,8 @@ describeIfDb("listTodos + createTodo (integration)", () => {
     const schema = await import("../../db/schema");
     listTodos = services.listTodos;
     createTodo = services.createTodo;
+    toggleComplete = services.toggleComplete;
+    getTodoOwnership = services.getTodoOwnership;
     db = client.db;
     sql = client.sql;
     todos = schema.todos;
@@ -124,5 +128,65 @@ describeIfDb("listTodos + createTodo (integration)", () => {
     const aList = await listTodos(makeCtx(ownerA));
     expect(aList.map((t) => t.id)).toContain(a.id);
     expect(aList.map((t) => t.id)).not.toContain(b.id);
+  });
+
+  it("toggleComplete flips false → true and returns the updated row", async () => {
+    const ownerId = crypto.randomUUID();
+    const created = await createTodo(makeCtx(ownerId), {
+      id: crypto.randomUUID(),
+      description: "to toggle",
+    });
+    expect(created.completionStatus).toBe(false);
+    const toggled = await toggleComplete(makeCtx(ownerId), created.id, true);
+    expect(toggled).not.toBeNull();
+    expect(toggled?.completionStatus).toBe(true);
+    expect(toggled?.id).toBe(created.id);
+  });
+
+  it("toggleComplete is naturally idempotent (true → true is no-op return)", async () => {
+    const ownerId = crypto.randomUUID();
+    const created = await createTodo(makeCtx(ownerId), {
+      id: crypto.randomUUID(),
+      description: "idempotent toggle",
+    });
+    await toggleComplete(makeCtx(ownerId), created.id, true);
+    const second = await toggleComplete(makeCtx(ownerId), created.id, true);
+    expect(second?.completionStatus).toBe(true);
+  });
+
+  it("toggleComplete returns null when id doesn't exist", async () => {
+    const ownerId = crypto.randomUUID();
+    const result = await toggleComplete(
+      makeCtx(ownerId),
+      crypto.randomUUID(),
+      true,
+    );
+    expect(result).toBeNull();
+  });
+
+  it("toggleComplete returns null when the todo belongs to a different owner", async () => {
+    const ownerA = crypto.randomUUID();
+    const ownerB = crypto.randomUUID();
+    const created = await createTodo(makeCtx(ownerA), {
+      id: crypto.randomUUID(),
+      description: "A's row",
+    });
+    const result = await toggleComplete(makeCtx(ownerB), created.id, true);
+    expect(result).toBeNull();
+  });
+
+  it("getTodoOwnership returns ownerId for an existing row", async () => {
+    const ownerId = crypto.randomUUID();
+    const created = await createTodo(makeCtx(ownerId), {
+      id: crypto.randomUUID(),
+      description: "owns this",
+    });
+    const owner = await getTodoOwnership(created.id);
+    expect(owner).toBe(ownerId);
+  });
+
+  it("getTodoOwnership returns null for non-existent id", async () => {
+    const owner = await getTodoOwnership(crypto.randomUUID());
+    expect(owner).toBeNull();
   });
 });

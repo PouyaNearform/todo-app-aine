@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
 import { todos } from "../../db/schema";
 import type { RequestContext } from "~/middleware/request-context";
@@ -40,4 +40,28 @@ export async function createTodo(
     throw new Error("createTodo: ON CONFLICT path returned no row");
   }
   return existing[0];
+}
+
+// Ownership-bypass lookup. Used ONLY by action handlers to feed
+// checkOwnership(ctx, resourceOwnerId). All other reads filter by ownerId.
+export async function getTodoOwnership(id: string): Promise<string | null> {
+  const rows = await db
+    .select({ ownerId: todos.ownerId })
+    .from(todos)
+    .where(eq(todos.id, id))
+    .limit(1);
+  return rows.length > 0 ? rows[0].ownerId : null;
+}
+
+export async function toggleComplete(
+  ctx: RequestContext,
+  id: string,
+  completed: boolean,
+): Promise<Todo | null> {
+  const result = await db
+    .update(todos)
+    .set({ completionStatus: completed })
+    .where(and(eq(todos.id, id), eq(todos.ownerId, ctx.ownerId)))
+    .returning();
+  return result.length > 0 ? result[0] : null;
 }

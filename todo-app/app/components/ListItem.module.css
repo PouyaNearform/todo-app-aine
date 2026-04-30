@@ -13,25 +13,6 @@
   }
 }
 
-.checkbox {
-  width: 16px;
-  height: 16px;
-  border: var(--border-width) solid var(--color-border);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.check {
-  display: block;
-  width: 10px;
-  height: 6px;
-  border-left: var(--border-width) solid var(--color-fg);
-  border-bottom: var(--border-width) solid var(--color-fg);
-  transform: rotate(-45deg) translateY(-1px);
-}
-
 .description {
   flex: 1;
   color: var(--color-fg);

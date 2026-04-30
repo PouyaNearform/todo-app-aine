@@ -234,3 +234,34 @@ export async function dispatchAddTodo(
     dispatch({ type: "revertMutation", mutationId });
   }
 }
+
+export async function dispatchToggleComplete(
+  dispatch: Dispatch<Action>,
+  id: string,
+  next: boolean,
+): Promise<void> {
+  const mutationId = crypto.randomUUID();
+  dispatch({ type: "toggleComplete", mutationId, id });
+
+  try {
+    const res = await browserKeyFetch(`/api/todos/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: next }),
+    });
+    const envelope = (await res.json()) as {
+      ok: boolean;
+      data?: Todo;
+      error?: unknown;
+    };
+    if (envelope.ok) {
+      dispatch({ type: "confirmMutation", mutationId });
+    } else {
+      console.warn("toggleComplete failed; reverting", envelope);
+      dispatch({ type: "revertMutation", mutationId });
+    }
+  } catch (e) {
+    console.warn("toggleComplete network error; reverting", e);
+    dispatch({ type: "revertMutation", mutationId });
+  }
+}

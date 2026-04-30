@@ -1,0 +1,45 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.input {
+  appearance: none;
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  opacity: 0;
+}
+
+.glyph {
+  width: 16px;
+  height: 16px;
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check {
+  display: block;
+  width: 10px;
+  height: 6px;
+  border-left: var(--border-width) solid var(--color-fg);
+  border-bottom: var(--border-width) solid var(--color-fg);
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.input:focus-visible + .glyph {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.input:active + .glyph {
+  box-shadow: var(--shadow-pressed);
+}

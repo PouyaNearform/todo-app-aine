@@ -1,4 +1,4 @@
-import { TodoCreateSchema } from "./validation";
+import { TodoCreateSchema, TodoUpdateSchema } from "./validation";
 
 describe("TodoCreateSchema", () => {
   const validId = "11111111-2222-4333-8444-555555555555";
@@ -41,5 +41,23 @@ describe("TodoCreateSchema", () => {
       description: "x".repeat(256),
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("TodoUpdateSchema", () => {
+  it("accepts { completed: true }", () => {
+    expect(TodoUpdateSchema.safeParse({ completed: true }).success).toBe(true);
+  });
+
+  it("accepts { completed: false }", () => {
+    expect(TodoUpdateSchema.safeParse({ completed: false }).success).toBe(true);
+  });
+
+  it("rejects non-boolean completed", () => {
+    expect(TodoUpdateSchema.safeParse({ completed: "yes" }).success).toBe(false);
+  });
+
+  it("rejects when completed is missing", () => {
+    expect(TodoUpdateSchema.safeParse({}).success).toBe(false);
   });
 });

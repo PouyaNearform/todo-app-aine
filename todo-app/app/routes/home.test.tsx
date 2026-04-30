@@ -5,6 +5,8 @@
 vi.mock("~/services/todos", () => ({
   listTodos: vi.fn(),
   createTodo: vi.fn(),
+  toggleComplete: vi.fn(),
+  getTodoOwnership: vi.fn(),
 }));
 vi.mock("../../db/client", () => ({ db: {}, sql: { end: vi.fn() } }));
 
@@ -149,5 +151,52 @@ describe("Home route", () => {
 
     vi.unstubAllGlobals();
     warnSpy.mockRestore();
+  });
+
+  it("optimistically toggles completion when checkbox is clicked", async () => {
+    const todo = makeTodo({ description: "do laundry", completionStatus: false });
+    let resolveFetch: ((value: Response) => void) | undefined;
+    const fetchMock = vi.fn().mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    mountWithLoader({ ok: true, data: { todos: [todo] } });
+
+    // Find the checkbox via its aria-label (set from description).
+    const checkbox = await screen.findByLabelText(`Toggle: ${todo.description}`);
+    expect(screen.getByTestId(`todo-item-${todo.id}`)).toHaveAttribute(
+      "data-completed",
+      "false",
+    );
+
+    await userEvent.click(checkbox);
+
+    // Optimistic flip happens before the fetch resolves.
+    expect(screen.getByTestId(`todo-item-${todo.id}`)).toHaveAttribute(
+      "data-completed",
+      "true",
+    );
+
+    // Verify the PATCH request was issued correctly.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe("PATCH");
+    expect(init.body).toBe(JSON.stringify({ completed: true }));
+
+    // Resolve the fetch with success — confirm doesn't re-flip the row.
+    resolveFetch?.(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: { ...todo, completionStatus: true, createdAt: todo.createdAt.toISOString() },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.unstubAllGlobals();
   });
 });

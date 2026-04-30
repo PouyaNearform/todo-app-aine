@@ -6,3 +6,9 @@ export const TodoCreateSchema = z.object({
 });
 
 export type TodoCreateInput = z.infer<typeof TodoCreateSchema>;
+
+export const TodoUpdateSchema = z.object({
+  completed: z.boolean(),
+});
+
+export type TodoUpdateInput = z.infer<typeof TodoUpdateSchema>;
