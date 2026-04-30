@@ -16,14 +16,18 @@ export function TextInput({ onSubmit }: TextInputProps) {
     }
   }, []);
 
+  function submit() {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    onSubmit(trimmed);
+    setValue("");
+    inputRef.current?.focus();
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      const trimmed = value.trim();
-      if (!trimmed) return;
-      onSubmit(trimmed);
-      setValue("");
-      inputRef.current?.focus();
+      submit();
       return;
     }
     if (event.key === "Escape") {
@@ -32,17 +36,28 @@ export function TextInput({ onSubmit }: TextInputProps) {
   }
 
   return (
-    <input
-      ref={inputRef}
-      type="text"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onKeyDown={handleKeyDown}
-      maxLength={256}
-      placeholder="Add a todo"
-      aria-label="Add a todo"
-      data-testid="todo-input"
-      className={styles.input}
-    />
+    <div className={styles.row}>
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        maxLength={256}
+        placeholder="Add a todo"
+        aria-label="Add a todo"
+        data-testid="todo-input"
+        className={styles.input}
+      />
+      <button
+        type="button"
+        onClick={submit}
+        className={styles.submitButton}
+        aria-label="Submit"
+        data-testid="todo-submit"
+      >
+        <span aria-hidden="true">↵</span>
+      </button>
+    </div>
   );
 }

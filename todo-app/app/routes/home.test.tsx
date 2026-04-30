@@ -234,6 +234,53 @@ describe("Home route", () => {
     vi.unstubAllGlobals();
   });
 
+  it("submitting via the mobile submit button calls the same flow as Enter", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            id: crypto.randomUUID(),
+            description: "tap submit",
+            completionStatus: false,
+            createdAt: new Date().toISOString(),
+            ownerId: "11111111-2222-4333-8444-555555555555",
+          },
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    mountWithLoader({ ok: true, data: { todos: [] } });
+    const input = await screen.findByTestId("todo-input");
+    await userEvent.type(input, "tap submit");
+    await userEvent.click(screen.getByTestId("todo-submit"));
+
+    const items = await screen.findAllByRole("listitem");
+    expect(items).toHaveLength(1);
+    expect(items[0]).toHaveTextContent("tap submit");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(input).toHaveValue("");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("mobile submit button silently rejects whitespace-only", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    mountWithLoader({ ok: true, data: { todos: [] } });
+    const input = await screen.findByTestId("todo-input");
+    await userEvent.type(input, "   ");
+    await userEvent.click(screen.getByTestId("todo-submit"));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("empty-state")).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
+
   it("two concurrent toggle failures produce two stacked toasts (FR29)", async () => {
     const todoA = makeTodo({ description: "A" });
     const todoB = makeTodo({ description: "B" });
