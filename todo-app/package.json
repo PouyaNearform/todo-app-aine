@@ -10,6 +10,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "check:gap-i1": "bash scripts/check-gap-i1.sh",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
