@@ -1,0 +1,6 @@
+.text {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-fg-muted);
+  padding: var(--space-xl) 0;
+}
