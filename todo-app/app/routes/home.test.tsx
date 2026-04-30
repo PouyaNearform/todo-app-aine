@@ -9,6 +9,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRoutesStub } from "react-router";
 import Home from "./home";
+import { OptimisticStoreProvider } from "~/lib/optimistic-store";
 import type { Todo } from "~/types/todo";
 
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
@@ -30,7 +31,11 @@ function mountWithLoader(loaderReturn: unknown) {
       loader: () => loaderReturn,
     },
   ]);
-  return render(<Stub initialEntries={["/"]} />);
+  return render(
+    <OptimisticStoreProvider>
+      <Stub initialEntries={["/"]} />
+    </OptimisticStoreProvider>,
+  );
 }
 
 describe("Home route", () => {

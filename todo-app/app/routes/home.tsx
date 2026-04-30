@@ -6,9 +6,13 @@ import { LoadingState } from "~/components/LoadingState";
 import { logger } from "~/lib/logger";
 import { buildRequestContext } from "~/middleware/request-context";
 import { checkOwnership } from "~/middleware/ownership-check";
+import { useSeedFromLoader } from "~/lib/optimistic-store";
 import { listTodos } from "~/services/todos";
 import { err, ok } from "~/types/envelope";
+import type { Todo } from "~/types/todo";
 import type { Route } from "./+types/home";
+
+const EMPTY_TODOS: Todo[] = [];
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -45,6 +49,11 @@ export default function Home() {
   const data = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
+
+  // Seed the optimistic store from loader data. The store's UI consumers arrive
+  // in Story 1.10+; for Story 1.9 the seed is non-load-bearing (rendering still
+  // reads from useLoaderData()).
+  useSeedFromLoader(data.ok ? data.data.todos : EMPTY_TODOS);
 
   if (navigation.state === "loading") {
     return (

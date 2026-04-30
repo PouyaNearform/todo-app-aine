@@ -9,6 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import { AppShell } from "~/components/AppShell";
+import { OptimisticStoreProvider } from "~/lib/optimistic-store";
 import "./styles/reset.css";
 import "./styles/tokens.css";
 import "./styles/global.css";
@@ -23,7 +24,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <AppShell>{children}</AppShell>
+        <OptimisticStoreProvider>
+          <AppShell>{children}</AppShell>
+        </OptimisticStoreProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

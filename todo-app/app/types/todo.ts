@@ -4,3 +4,12 @@
 // so the client bundle stays free of Drizzle/Postgres code.
 
 export type { Todo, NewTodo } from "../../db/schema";
+
+import type { Todo } from "../../db/schema";
+
+export type MutationId = string;
+
+export type PendingMutation =
+  | { kind: "add"; tempTodo: Todo }
+  | { kind: "toggle"; id: string; previousStatus: boolean }
+  | { kind: "delete"; previousTodo: Todo };
