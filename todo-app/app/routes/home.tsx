@@ -3,10 +3,16 @@ import { EmptyState } from "~/components/EmptyState";
 import { ErrorState } from "~/components/ErrorState";
 import { ListItem } from "~/components/ListItem";
 import { LoadingState } from "~/components/LoadingState";
+import { TextInput } from "~/components/TextInput";
 import { logger } from "~/lib/logger";
-import { buildRequestContext } from "~/middleware/request-context";
+import {
+  dispatchAddTodo,
+  useDispatch,
+  useSeedFromLoader,
+  useTodos,
+} from "~/lib/optimistic-store";
 import { checkOwnership } from "~/middleware/ownership-check";
-import { useSeedFromLoader } from "~/lib/optimistic-store";
+import { buildRequestContext } from "~/middleware/request-context";
 import { listTodos } from "~/services/todos";
 import { err, ok } from "~/types/envelope";
 import type { Todo } from "~/types/todo";
@@ -40,34 +46,23 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-function InputArea() {
-  // TODO Story 1.10: real TextInput primitive
-  return <div />;
-}
-
 export default function Home() {
   const data = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
+  const dispatch = useDispatch();
+  const storeTodos = useTodos();
 
-  // Seed the optimistic store from loader data. The store's UI consumers arrive
-  // in Story 1.10+; for Story 1.9 the seed is non-load-bearing (rendering still
-  // reads from useLoaderData()).
   useSeedFromLoader(data.ok ? data.data.todos : EMPTY_TODOS);
 
-  if (navigation.state === "loading") {
-    return (
-      <>
-        <InputArea />
-        <LoadingState />
-      </>
-    );
-  }
+  const input = (
+    <TextInput onSubmit={(description) => dispatchAddTodo(dispatch, description)} />
+  );
 
   if (!data.ok) {
     return (
       <>
-        <InputArea />
+        {input}
         <ErrorState
           message={data.error.message}
           onRetry={() => revalidator.revalidate()}
@@ -76,10 +71,19 @@ export default function Home() {
     );
   }
 
-  if (data.data.todos.length === 0) {
+  if (navigation.state === "loading") {
     return (
       <>
-        <InputArea />
+        {input}
+        <LoadingState />
+      </>
+    );
+  }
+
+  if (storeTodos.length === 0) {
+    return (
+      <>
+        {input}
         <EmptyState />
       </>
     );
@@ -87,9 +91,9 @@ export default function Home() {
 
   return (
     <>
-      <InputArea />
+      {input}
       <ul role="list">
-        {data.data.todos.map((t) => (
+        {storeTodos.map((t) => (
           <ListItem key={t.id} todo={t} />
         ))}
       </ul>

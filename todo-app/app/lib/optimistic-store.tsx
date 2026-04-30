@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type ReactNode,
 } from "react";
+import { browserKeyFetch, getBrowserKey } from "~/lib/browser-key";
 import type { MutationId, PendingMutation, Todo } from "~/types/todo";
 
 export type State = {
@@ -186,4 +187,50 @@ export function useSeedFromLoader(todos: Todo[]): void {
       dispatch({ type: "seed", todos });
     }
   }, [todos, dispatch]);
+}
+
+export async function dispatchAddTodo(
+  dispatch: Dispatch<Action>,
+  description: string,
+): Promise<void> {
+  const id = crypto.randomUUID();
+  const mutationId = crypto.randomUUID();
+  const ownerId = getBrowserKey();
+  const tempTodo: Todo = {
+    id,
+    description,
+    completionStatus: false,
+    createdAt: new Date(),
+    ownerId: ownerId || null,
+  };
+
+  dispatch({ type: "addTodo", mutationId, tempTodo });
+
+  try {
+    const res = await browserKeyFetch("/api/todos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, description }),
+    });
+    const envelope = (await res.json()) as {
+      ok: boolean;
+      data?: Todo;
+      error?: unknown;
+    };
+    if (envelope.ok && envelope.data) {
+      // Server's createdAt comes back as a JSON string; revive to Date so
+      // downstream rendering / sorting stays type-safe.
+      const serverTodo: Todo = {
+        ...envelope.data,
+        createdAt: new Date(envelope.data.createdAt as unknown as string),
+      };
+      dispatch({ type: "confirmMutation", mutationId, serverTodo });
+    } else {
+      console.warn("addTodo failed; reverting", envelope);
+      dispatch({ type: "revertMutation", mutationId });
+    }
+  } catch (e) {
+    console.warn("addTodo network error; reverting", e);
+    dispatch({ type: "revertMutation", mutationId });
+  }
 }
