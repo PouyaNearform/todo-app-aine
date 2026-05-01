@@ -10,6 +10,7 @@
 # Build / cache
 /dist/
 /.cache/
+/coverage/
 
 # IDE
 .idea/
