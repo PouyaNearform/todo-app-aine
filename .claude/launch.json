@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "todo-app-dev",
+      "runtimeExecutable": "/Users/pouya/Library/pnpm/pnpm",
+      "runtimeArgs": ["-C", "todo-app", "dev"],
+      "port": 5173
+    }
+  ]
+}

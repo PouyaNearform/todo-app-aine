@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToDo App — UX Design Mockup (vintage Macintosh System 7 direction)</title>
+<style>
+/* ============================================================
+   Design tokens — canonical values from UX spec Step 8.
+   All AA-verified against WCAG 2.1.
+   ============================================================ */
+:root {
+  /* Color */
+  --color-bg: #FAFAF7;
+  --color-fg: #1A1A1A;
+  --color-fg-muted: #555555;
+  --color-fg-faded: #6E6E6E;
+  --color-border: #1A1A1A;
+  --color-border-soft: #C8C8C8;
+  --color-accent: #0050D0;
+  --color-accent-fg: #FAFAF7;
+
+  /* Spacing — 8-px grid */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  /* Typography — Charter / Iowan Old Style / Palatino body stack */
+  --font-body: "Charter", "Iowan Old Style", "Palatino", Georgia, serif;
+  --font-mono: "Berkeley Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --line-height-base: 1.5;
+
+  /* Motion */
+  --motion-duration-quick: 120ms;
+  --motion-duration-default: 200ms;
+  --motion-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  /* Border / elevation */
+  --border-width: 1px;
+  --border-radius: 0;
+  --shadow-toast: 2px 2px 0 var(--color-border);
+}
+
+/* ============================================================
+   Mockup-page chrome (NOT part of the app — just the showcase)
+   ============================================================ */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: var(--space-xl) var(--space-md);
+  background: #E8E8E5;
+  font-family: var(--font-body);
+  color: var(--color-fg);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+.page-header {
+  max-width: 1400px;
+  margin: 0 auto var(--space-xl);
+}
+.page-header h1 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin: 0 0 var(--space-sm);
+  letter-spacing: -0.01em;
+}
+.page-header p {
+  color: var(--color-fg-muted);
+  margin: 0 0 var(--space-sm);
+  max-width: 720px;
+}
+.page-header code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--color-bg);
+  padding: 2px 4px;
+  border: 1px solid var(--color-border-soft);
+}
+
+/* Grid of state panels */
+.mockup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--space-lg);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.state-panel {
+  background: var(--color-bg);
+  border: var(--border-width) solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+.state-panel-header {
+  background: var(--color-fg);
+  color: var(--color-bg);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.state-panel-header .state-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.8;
+}
+.state-panel-frame {
+  padding: var(--space-md);
+  min-height: 360px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.state-panel-frame.long-list {
+  min-height: 580px;
+}
+
+/* ============================================================
+   App-shell components — what the actual product renders
+   ============================================================ */
+
+/* Input field — pre-focused on real app load */
+.todo-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  padding: 10px 12px;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius);
+  outline: none;
+}
+.todo-input::placeholder {
+  color: var(--color-fg-muted);
+  font-style: normal;
+}
+/* Focus state: inverted-block focus ring (accent border + outer ring) */
+.todo-input.focused {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+.todo-input.focused::after {
+  content: '|';
+  color: var(--color-accent);
+  animation: cursor-blink 1s steps(1) infinite;
+}
+@keyframes cursor-blink {
+  50% { opacity: 0; }
+}
+
+/* List */
+.todo-list {
+  list-style: none;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.todo-list li {
+  border-top: var(--border-width) solid var(--color-border-soft);
+  padding: 12px 4px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  position: relative;
+}
+.todo-list li:first-child { border-top: none; padding-top: var(--space-md); }
+
+/* Vintage Mac checkbox (16×16 visible glyph, 44×44 hit area via padding) */
+.checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.checkbox.checked::after {
+  /* Vintage Mac checkmark */
+  content: '';
+  display: block;
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--color-fg);
+  border-bottom: 2px solid var(--color-fg);
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.checkbox-hit-area {
+  /* 44×44 minimum hit area expanded around the 16×16 glyph */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -14px -14px;  /* visually compact, accessibly generous */
+  cursor: pointer;
+}
+
+/* Description text */
+.todo-text {
+  flex: 1;
+  font-size: var(--font-size-base);
+  color: var(--color-fg);
+  word-break: break-word;
+}
+
+/* Completed: strike-through + faded (color is NEVER the only signal) */
+.todo-list li.completed .todo-text {
+  text-decoration: line-through;
+  color: var(--color-fg-faded);
+}
+
+/* Delete glyph — hidden by default on desktop, revealed on hover */
+.delete-glyph {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--motion-duration-quick) var(--motion-easing);
+  /* Hit area expands to 44×44 invisibly */
+  position: relative;
+}
+.delete-glyph::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  cursor: pointer;
+}
+.todo-list li:hover .delete-glyph,
+.todo-list li:focus-within .delete-glyph {
+  opacity: 1;
+}
+/* On mobile, delete is always visible */
+@media (max-width: 640px) {
+  .delete-glyph { opacity: 1; }
+}
+
+/* Inverted-block focus indicator on a list item (demonstrated on default panel) */
+.todo-list li.focused {
+  background: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+.todo-list li.focused .todo-text {
+  color: var(--color-accent-fg);
+}
+.todo-list li.focused .checkbox {
+  border-color: var(--color-accent-fg);
+  background: var(--color-accent);
+}
+.todo-list li.focused .checkbox.checked::after {
+  border-color: var(--color-accent-fg);
+}
+.todo-list li.focused .delete-glyph {
+  opacity: 1;
+  color: var(--color-accent-fg);
+}
+
+/* ============================================================
+   Empty / Loading / Error state messages
+   ============================================================ */
+.state-message {
+  margin-top: var(--space-xl);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-fg-muted);
+  padding: var(--space-lg) 0;
+}
+
+.state-message.error-message {
+  margin-top: var(--space-md);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+
+/* Button primitive */
+.button {
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  padding: 8px 16px;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+.button:hover {
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+.button:active {
+  box-shadow: inset 1px 1px 0 var(--color-border);
+}
+
+/* ============================================================
+   Toast — System 7 alert-panel descendant, non-blocking
+   ============================================================ */
+.toast {
+  position: absolute;
+  bottom: var(--space-md);
+  right: var(--space-md);
+  width: 280px;
+  background: var(--color-bg);
+  border: var(--border-width) solid var(--color-border);
+  box-shadow: var(--shadow-toast);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.toast-header {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.toast-dismiss {
+  font-size: var(--font-size-base);
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  padding: 0 var(--space-xs);
+  line-height: 1;
+}
+.toast-body {
+  font-size: var(--font-size-sm);
+  color: var(--color-fg);
+  margin: 0;
+}
+.toast-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-xs);
+}
+
+/* ============================================================
+   Reduced motion — collapse all transitions to 0
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>ToDo App — UX Design Mockup</h1>
+  <p>Vintage-inspired Macintosh System 7 direction. Token values from <code>app/styles/tokens.css</code>, all AA-verified. Six canonical states shown side-by-side: <strong>Default</strong>, <strong>Empty</strong>, <strong>Loading</strong>, <strong>Error</strong>, <strong>Long-list</strong>, and <strong>Default with Toast</strong>.</p>
+  <p>Hover any todo row in the Default panel to see the delete glyph reveal. The third row in Default demonstrates the inverted-block keyboard focus indicator. The first row in Default is shown completed (strike-through + faded text).</p>
+</header>
+
+<div class="mockup-grid">
+
+  <!-- ============================================================
+       1. DEFAULT — list with items, input pre-focused
+       ============================================================ -->
+  <section class="state-panel">
+    <div class="state-panel-header">
+      <span>Default</span>
+      <span class="state-tag">list with items</span>
+    </div>
+    <div class="state-panel-frame">
+      <input class="todo-input focused" placeholder="Add a todo" value="">
+      <ul class="todo-list">
+        <li class="completed">
+          <span class="checkbox-hit-area"><span class="checkbox checked" aria-hidden="true"></span></span>
+          <span class="todo-text">pick up dry cleaning</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">email Helena re: Q3 budget</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li class="focused">
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">prep slide for the 3pm</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       2. EMPTY — no items
+       ============================================================ -->
+  <section class="state-panel">
+    <div class="state-panel-header">
+      <span>Empty</span>
+      <span class="state-tag">no items</span>
+    </div>
+    <div class="state-panel-frame">
+      <input class="todo-input" placeholder="Add a todo" value="">
+      <p class="state-message">Nothing on the list.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       3. LOADING — initial fetch in flight
+       ============================================================ -->
+  <section class="state-panel">
+    <div class="state-panel-header">
+      <span>Loading</span>
+      <span class="state-tag">initial fetch</span>
+    </div>
+    <div class="state-panel-frame">
+      <input class="todo-input" placeholder="Add a todo" value="">
+      <p class="state-message">Loading…</p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       4. ERROR — initial fetch failed (input still functional)
+       ============================================================ -->
+  <section class="state-panel">
+    <div class="state-panel-header">
+      <span>Error</span>
+      <span class="state-tag">fetch failed</span>
+    </div>
+    <div class="state-panel-frame">
+      <input class="todo-input" placeholder="Add a todo" value="">
+      <div class="state-message error-message">
+        <span>Couldn't load the list.</span>
+        <button class="button" type="button">Retry</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       5. LONG-LIST — many items, active + completed coexist
+       ============================================================ -->
+  <section class="state-panel">
+    <div class="state-panel-header">
+      <span>Long-list</span>
+      <span class="state-tag">many items, mixed status</span>
+    </div>
+    <div class="state-panel-frame long-list">
+      <input class="todo-input" placeholder="Add a todo" value="">
+      <ul class="todo-list">
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">draft architecture seam refactor proposal</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li class="completed">
+          <span class="checkbox-hit-area"><span class="checkbox checked" aria-hidden="true"></span></span>
+          <span class="todo-text">review pull request from Jordan</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">return library books</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li class="completed">
+          <span class="checkbox-hit-area"><span class="checkbox checked" aria-hidden="true"></span></span>
+          <span class="todo-text">refill coffee beans</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">file expense report for last week</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">long description that wraps gracefully across multiple lines without breaking horizontal layout or producing scroll bars regardless of viewport size</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li class="completed">
+          <span class="checkbox-hit-area"><span class="checkbox checked" aria-hidden="true"></span></span>
+          <span class="todo-text">water the plants</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">call dentist about appointment</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">send invoice to client</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       6. TOAST — overlaid on default state, non-blocking
+       ============================================================ -->
+  <section class="state-panel">
+    <div class="state-panel-header">
+      <span>Default + Toast</span>
+      <span class="state-tag">optimistic-rollback recovery</span>
+    </div>
+    <div class="state-panel-frame">
+      <input class="todo-input" placeholder="Add a todo" value="">
+      <ul class="todo-list">
+        <li class="completed">
+          <span class="checkbox-hit-area"><span class="checkbox checked" aria-hidden="true"></span></span>
+          <span class="todo-text">pick up dry cleaning</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+        <li>
+          <span class="checkbox-hit-area"><span class="checkbox" aria-hidden="true"></span></span>
+          <span class="todo-text">email Helena re: Q3 budget</span>
+          <span class="delete-glyph" aria-label="Delete">×</span>
+        </li>
+      </ul>
+      <div class="toast" role="status" aria-live="polite">
+        <div class="toast-header">
+          <span>Couldn't save</span>
+          <span class="toast-dismiss" aria-label="Dismiss">×</span>
+        </div>
+        <p class="toast-body">'follow up with the design team'</p>
+        <div class="toast-actions">
+          <button class="button" type="button">Retry</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

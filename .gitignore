@@ -1,0 +1,28 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+build/
+dist/
+.cache/
+.react-router/
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+
+# IDE / personal Claude config
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.claude/settings.local.json
+.agents/
