@@ -16,9 +16,24 @@ export type RequestContext = {
   ownerId: string;
 };
 
+function readCookie(request: Request, name: string): string | null {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(";")) {
+    const [k, v] = part.trim().split("=");
+    if (k === name) return v ?? null;
+  }
+  return null;
+}
+
 export function buildRequestContext(request: Request): RequestContext {
+  // Primary transport: X-Browser-Key header (set by browserKeyFetch on every
+  // client→server fetch). Fallback: same-origin cookie set by getBrowserKey
+  // on first client interaction — needed for SSR-handoff on direct browser
+  // navigations (page refresh, deep link) where no fetcher wraps the request.
   const headerValue = request.headers.get("X-Browser-Key") ?? "";
-  let browserKey = headerValue;
+  const cookieValue = readCookie(request, "todo-app-browser-key") ?? "";
+  let browserKey = headerValue || cookieValue;
 
   if (!browserKey) {
     browserKey = crypto.randomUUID();

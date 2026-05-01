@@ -24,6 +24,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Decorative — clicks pass through to the wrapping <label> which toggles
+   * the underlying <input>. Without this, the visual glyph intercepts
+   * pointer events even though it's purely presentational. */
+  pointer-events: none;
 }
 
 .check {
@@ -33,6 +37,7 @@
   border-left: var(--border-width) solid var(--color-fg);
   border-bottom: var(--border-width) solid var(--color-fg);
   transform: rotate(-45deg) translateY(-1px);
+  pointer-events: none;
 }
 
 .input:focus-visible + .glyph {
