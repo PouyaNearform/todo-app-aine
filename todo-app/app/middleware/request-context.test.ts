@@ -76,6 +76,44 @@ describe("buildRequestContext", () => {
     expect(a.requestId).not.toBe(b.requestId);
   });
 
+  it("falls back to the todo-app-browser-key cookie when the X-Browser-Key header is absent", () => {
+    const cookieKey = "cookie01-2222-4333-8444-555555555555";
+    const req = new Request("http://localhost/", {
+      headers: { cookie: `todo-app-browser-key=${cookieKey}` },
+    });
+    const ctx = buildRequestContext(req);
+    if (ctx.principal.kind === "browser-key") {
+      expect(ctx.principal.browserKey).toBe(cookieKey);
+    }
+    expect(ctx.ownerId).toBe(cookieKey);
+    // Cookie hit means no fallback warning fires.
+    expect(warnCalls).toHaveLength(0);
+  });
+
+  it("prefers the X-Browser-Key header over the cookie when both are present", () => {
+    const headerKey = "headerff-2222-4333-8444-555555555555";
+    const cookieKey = "cookie01-2222-4333-8444-555555555555";
+    const req = new Request("http://localhost/", {
+      headers: {
+        "X-Browser-Key": headerKey,
+        cookie: `todo-app-browser-key=${cookieKey}`,
+      },
+    });
+    const ctx = buildRequestContext(req);
+    expect(ctx.ownerId).toBe(headerKey);
+  });
+
+  it("ignores cookie values from unrelated cookie names", () => {
+    const req = new Request("http://localhost/", {
+      headers: {
+        cookie: "session-id=abc; other=def",
+      },
+    });
+    const ctx = buildRequestContext(req);
+    expect(ctx.ownerId).toMatch(UUID_V4);
+    expect(warnCalls).toHaveLength(1); // Falls through to fallback.
+  });
+
   it("emits a structured warning that includes event and path", () => {
     const req = new Request("http://localhost/api/todos");
     buildRequestContext(req);
