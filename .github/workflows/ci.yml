@@ -72,8 +72,16 @@ jobs:
       - name: Docker build
         run: docker build -t todo-app:ci .
 
-      # TODO Story 2.9: enable Playwright + axe jobs once specs exist.
-      # - name: Playwright E2E
-      #   run: pnpm test:e2e
-      # - name: axe accessibility scan
-      #   run: pnpm test:a11y
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright E2E (incl. axe a11y + perf budgets)
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: todo-app/playwright-report/
+          retention-days: 7
